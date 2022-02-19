@@ -41,12 +41,16 @@
     }
 
     getStepSize() {
-      return this.get('stepSize');
+      return parseInt(this.get('stepSize'));
     }
 
     incrementThreshold() {
       const newValue = this.getSuccessThreshold() + this.getStepSize();
       this.setSuccessThreshold(newValue);
+    }
+
+    getGameStartingThreshold() {
+      return parseInt(this.get('gameStartingThreshold'));
     }
 
     defaultConfig() {
@@ -89,6 +93,8 @@
     constructor(monkeyType, config) {
       this.monkeyType = monkeyType;
       this.config = config;
+      this.gamewords = [];
+      this.gameRunning = false;
     }
 
     init() {
@@ -96,11 +102,22 @@
       this.addInfoContainer();
       this.addNextButton();
       this.addLoadButtons();
+      this.addGameButtons();
       this.watchForStateChange();
 
       this.monkeyType.getSubmitCustomWordsButton().addEventListener('click', () => {
         this.wordCountSpan.innerText = this.monkeyType.getCurrentWordCount();
       });
+    }
+
+    startGame() {
+      this.gameRunning = true;
+      this.gamewords = this.monkeyType.getCurrentCustomWords();
+      this.config.setSuccessThreshold(this.config.getGameStartingThreshold());
+    }
+
+    stopGame() {
+      this.gameRunning = false;
     }
 
     // I removed "I" from the top 200
@@ -162,12 +179,30 @@
       this.addLoadButton('ngrams', this.getNGrams(), groupDiv);
     }
 
-    addLoadButton(name, text, container) {
+    addGameButtons() {
+      const groupDiv = document.createElement('div');
+      groupDiv.classList.add('group');
+      this.monkeyType.desktopConfigDiv().appendChild(groupDiv);
+      const startButton = this.textButton('start');
+      const stopButton = this.textButton('stop');
+      groupDiv.appendChild(startButton);
+      groupDiv.appendChild(stopButton);
+      startButton.addEventListener('click', () => this.startGame());
+      stopButton.addEventListener('click', () => this.stopGame());
+    }
+
+    textButton(name) {
       const button = document.createElement('span');
       button.innerText = name;
       button.classList.add('text-button');
       button.style.fontSize = '0.7rem';
       button.style.marginRight = '10px';
+
+      return button;
+    }
+
+    addLoadButton(name, text, container) {
+      const button = this.textButton(name);
       container.appendChild(button);
       button.addEventListener('click', () => {
         this.updateWordsWithString(text);
@@ -225,11 +260,13 @@
     }
 
     onTestHidden() {
-      console.log('hidden');
-      this.config.incrementThreshold();
     }
 
     onTestShown() {
+      if (this.gameRunning && this.monkeyType.getCurrentWordCount() === 0) {
+        this.config.incrementThreshold();
+        this.updateWords(this.gamewords);
+      }
     }
   }
 
