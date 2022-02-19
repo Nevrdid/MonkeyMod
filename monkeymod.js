@@ -14,7 +14,7 @@
         return this.defaultConfig();
       }
       try {
-        return JSON.parse(stored);
+        return Object.assign(this.defaultConfig(), JSON.parse(stored));
       } catch (e) {
         return {};
       }
