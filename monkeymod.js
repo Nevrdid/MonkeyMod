@@ -96,7 +96,7 @@
       const infoDiv = document.createElement('div');
       infoDiv.appendChild(this.getLastRemovedDiv());
       infoDiv.appendChild(this.getWordCountDiv());
-      this.monkeyType.getTypingTestContainer().prepend(infoDiv);
+      this.monkeyType.centerContent().prepend(infoDiv);
     }
 
     getLastRemovedDiv() {
@@ -215,6 +215,10 @@
   class MonkeyType {
     find(selector) {
       return document.querySelector(selector);
+    }
+
+    centerContent() {
+      return this.find('#centerContent');
     }
 
     getTypingTestContainer() {
