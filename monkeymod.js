@@ -76,6 +76,7 @@
       this.addInfoContainer();
       this.addNextButton();
       this.addLoadButtons();
+      this.watchForStateChange();
 
       this.monkeyType.getSubmitCustomWordsButton().addEventListener('click', () => {
         this.wordCountSpan.innerText = this.monkeyType.getCurrentWordCount();
@@ -182,6 +183,31 @@
       } else {
         this.monkeyType.clickNextTestButton();
       }
+    }
+
+    watchForStateChange() {
+      const targetNode = this.monkeyType.getTypingTestContainer();
+      const config = { attributes: true, childList: false, subtree: false };
+
+      const callback = (mutationsList) => {
+        mutationsList.forEach((mutation) => {
+          if (mutation.attributeName === 'class') {
+            if (mutation.target.classList.contains('hidden')) {
+              this.onTestHidden();
+            } else {
+              this.onTestShown();
+            }
+          }
+        });
+      };
+      const observer = new MutationObserver(callback);
+      observer.observe(targetNode, config);
+    }
+
+    onTestHidden() {
+    }
+
+    onTestShown() {
     }
   }
 
