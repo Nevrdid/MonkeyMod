@@ -276,7 +276,7 @@
     }
 
     getCurrentCustomWords() {
-      return this.getCustomWordsTextArea().value.split(' ');
+      return this.getCustomWordsTextArea().value.split(' ').filter((word) => word !== '');
     }
 
     getCurrentWordCount() {
