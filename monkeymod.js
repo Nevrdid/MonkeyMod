@@ -29,19 +29,38 @@
       const all = this.getAll();
       all[key] = value;
       localStorage.setItem('monkeyFilterConfig', JSON.stringify(all));
+      this.show();
     }
 
     getSuccessThreshold() {
       return parseInt(this.get('successThreshold'));
     }
 
+    setSuccessThreshold(value) {
+      this.set('successThreshold', value);
+    }
+
+    getStepSize() {
+      return this.get('stepSize');
+    }
+
+    incrementThreshold() {
+      const newValue = this.getSuccessThreshold() + this.getStepSize();
+      this.setSuccessThreshold(newValue);
+    }
+
     defaultConfig() {
       return {
-        successThreshold: 70
+        successThreshold: 70,
+        gameStartingThreshold: 50,
+        stepSize: 5,
       };
     }
 
     show() {
+      if (this.floatingContainer) {
+        this.floatingContainer.parentNode.removeChild(this.floatingContainer);
+      }
       const floatingContainer = document.createElement('div');
       floatingContainer.style.width = '200px';
       floatingContainer.style.height = '200px';
@@ -61,6 +80,7 @@
         floatingContainer.appendChild(container);
       }
 
+      this.floatingContainer = floatingContainer;
       document.body.appendChild(floatingContainer);
     }
   }
@@ -205,6 +225,8 @@
     }
 
     onTestHidden() {
+      console.log('hidden');
+      this.config.incrementThreshold();
     }
 
     onTestShown() {
