@@ -3,7 +3,7 @@
 // @version      0.2
 // @description  Stuff I wish MonkeyType had
 // @author       Alex
-// @match        https://monkeytype.com
+// @include      https://monkeytype.com/*
 // ==/UserScript==
 
 (function() {
@@ -111,13 +111,11 @@
     }
 
     startGame() {
-      this.gameRunning = true;
-      this.gamewords = this.monkeyType.getCurrentCustomWords();
-      this.config.setSuccessThreshold(this.config.getGameStartingThreshold());
+      this.runningGame = new Game(this.config, this.monkeyType, this);
     }
 
     stopGame() {
-      this.gameRunning = false;
+      this.runningGame = null;
     }
 
     // I removed "I" from the top 200
@@ -248,7 +246,7 @@
         mutationsList.forEach((mutation) => {
           if (mutation.attributeName === 'class') {
             if (mutation.target.classList.contains('hidden')) {
-              this.onTestHidden();
+              this.onResultsShown();
             } else {
               this.onTestShown();
             }
@@ -259,13 +257,15 @@
       observer.observe(targetNode, config);
     }
 
-    onTestHidden() {
+    onResultsShown() {
+      if (this.runningGame) {
+        this.runningGame.onResultsShown();
+      }
     }
 
     onTestShown() {
-      if (this.gameRunning && this.monkeyType.getCurrentWordCount() === 0) {
-        this.config.incrementThreshold();
-        this.updateWords(this.gamewords);
+      if (this.runningGame) {
+        this.runningGame.onTestShown();
       }
     }
   }
@@ -340,11 +340,76 @@
     }
 
     wpm() {
-      return this.div.getAttribute('burst');
+      return parseInt(this.div.getAttribute('burst'));
     }
 
     typedInput() {
       return this.div.getAttribute('input');
+    }
+
+    isWrong() {
+      return this.div.classList.contains('error');
+    }
+
+    wasTypedCorrectly() {
+      return !this.div.classList.contains('error') && this.div.hasAttribute('input');
+    }
+  }
+
+  class Game {
+    constructor(config, monkeyType, monkeyMod) {
+      this.config = config;
+      this.monkeyType = monkeyType;
+      this.monkeyMod = monkeyMod;
+      this.config.setSuccessThreshold(this.config.getGameStartingThreshold());
+      this.startingWords = [...new Set(monkeyType.getCurrentCustomWords())];
+      this.wordStats = {};
+      this.startingWords.forEach((word) => {
+        this.wordStats[word] = new WordStat(word);
+      });
+    }
+
+    onTestShown() {
+      if (this.monkeyType.getCurrentWordCount() === 0) {
+        this.config.incrementThreshold();
+        const newWords = this.startingWords.filter((word) => {
+          const stat = this.wordStats[word];
+          return !stat.hasBeenTypedFasterThan(this.config.getSuccessThreshold());
+        });
+        this.monkeyMod.updateWords(newWords);
+      }
+    }
+
+    onResultsShown() {
+      const correctWords = this.monkeyType.getResultWords().filter((result) => result.wasTypedCorrectly());
+      correctWords.forEach((correctWord) => {
+        const stat = this.wordStats[correctWord.typedInput()];
+        let wpm = correctWord.wpm();
+        stat.addSpeed(wpm);
+      });
+    }
+  }
+
+  class WordStat {
+    constructor(word) {
+      this.word = word;
+      this.speeds = [];
+    }
+
+    typedCount() {
+      return this.speeds.length;
+    }
+
+    addSpeed(wpm) {
+      this.speeds.push(wpm);
+    }
+
+    hasBeenTypedFasterThan(wpm) {
+      if (this.typedCount() < 1) {
+        return false;
+      }
+
+      return Math.max(...this.speeds) >= wpm;
     }
   }
 
